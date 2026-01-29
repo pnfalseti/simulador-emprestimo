@@ -77,12 +77,12 @@
       </select>
     </div>
     <div><label>Preço BTC (USD) em jan/2026</label><input id="btcUsd" type="number" value="130000" step="100" /></div>
-    <div><label>Câmbio (R$/USD)</label><input id="usdBrl" type="number" value="6" step="0.01" /></div>
+    <div><label>Câmbio (R$/USD)</label><input id="usdBrl" type="number" value="5.5" step="0.01" /></div>
     <div><label>Valorização BTC (ano %)</label><input id="btcGrowth" type="number" value="25" step="0.1" /></div>
-    <div><label>Salário/aporte convertido mensal (R$)</label><input id="monthlySalary" type="number" value="12000" step="100" /></div>
-    <div><label>PLR (R$) — janeiro de cada ano</label><input id="plr" type="number" value="10000" step="100" /></div>
-    <div><label>Aporte único (R$)</label><input id="initialAporte" type="number" value="35000" step="100" /></div>
-    <div><label>Saque líquido mensal (R$)</label><input id="monthlyWithdraw" type="number" value="9000" step="100" /></div>
+    <div><label>Salário/aporte convertido mensal (R$)</label><input id="monthlySalary" type="number" value="0" step="100" /></div>
+    <div><label>PLR (R$) — janeiro de cada ano</label><input id="plr" type="number" value="0" step="100" /></div>
+    <div><label>Aporte único (R$)</label><input id="initialAporte" type="number" value="0" step="100" /></div>
+    <div><label>Saque líquido mensal (R$)</label><input id="monthlyWithdraw" type="number" value="0" step="100" /></div>
     <div><label>Juros anual (%)</label><input id="annualInterest" type="number" value="10" step="0.1" /></div>
     <div><label>Taxa administrativa anual (%)</label><input id="adminFee" type="number" value="2.4" step="0.1" /></div>
     <div><label>LTV alvo (%)</label><input id="ltv" type="number" value="50" step="1" /></div>
@@ -421,4 +421,5 @@ document.addEventListener("keydown", function (event) {
 </script>
 </body>
 </html>
+
 
