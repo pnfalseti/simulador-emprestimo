@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Simulador de empréstimos</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/1.1.0/modern-normalize.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1"></script>
+<style>
+  body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:18px; background:#f7fafc; color:#0f172a; }
+  h1 { margin:0 0 12px; font-size:20px; }
+  .box { background:white; border-radius:8px; padding:14px; box-shadow:0 6px 18px rgba(2,6,23,0.06); margin-bottom:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+  label { font-size:12px; color:#334155; display:block; margin-bottom:6px; }
+  input[type="number"], select { width:100%; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px; }
+  button { background:#0ea5a4; color:white; padding:10px 12px; border:0; border-radius:8px; cursor:pointer; font-weight:600; }
+  button.secondary { background:#64748b; margin-left:8px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+  th, td { padding:8px 6px; border-bottom:1px solid #e6eef6; text-align:right; }
+  th { background:#fbfdfe; position:sticky; top:0; z-index:10; font-weight:700; }
+  td.left, th.left { text-align:left; }
+  tbody tr:nth-child(even) { background-color:#f9fafb; }
+  tbody tr:nth-child(odd) { background-color:#ffffff; }
+  tbody tr:hover { background-color:#d1fae5 !important; transition: background-color 0.2s ease; }
+
+  #chartSection {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  #chartWrap {
+    flex: 3;
+    min-width: 300px;
+    height: 320px;
+  }
+
+  #summaryBox {
+    flex: 1;
+    min-width: 200px;
+    background: #d1fae5;
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+  }
+
+  #summaryBox h2 {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+
+  #summaryBox div {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  #summaryBox span {
+    font-weight: 600;
+    color: #0f172a;
+  }
+
+  #tableWrap { overflow:auto; max-height:420px; position:relative; }
+</style>
+</head>
+<body>
+
+<h1>Simulador - Empréstimos com garantia em BTC</h1>
+
+<div class="box">
+  <div class="grid">
+    <div><label>Plataforma</label>
+      <select id="platform">
+        <option value="Ledn">Ledn</option>
+        <option value="Aave">Aave</option>
+      </select>
+    </div>
+    <div><label>Preço BTC (USD) em jan/2026</label><input id="btcUsd" type="number" value="130000" step="100" /></div>
+    <div><label>Câmbio (R$/USD)</label><input id="usdBrl" type="number" value="6" step="0.01" /></div>
+    <div><label>Valorização BTC (ano %)</label><input id="btcGrowth" type="number" value="25" step="0.1" /></div>
+    <div><label>Salário/aporte convertido mensal (R$)</label><input id="monthlySalary" type="number" value="12000" step="100" /></div>
+    <div><label>PLR (R$) — janeiro de cada ano</label><input id="plr" type="number" value="10000" step="100" /></div>
+    <div><label>Aporte único (R$)</label><input id="initialAporte" type="number" value="35000" step="100" /></div>
+    <div><label>Saque líquido mensal (R$)</label><input id="monthlyWithdraw" type="number" value="9000" step="100" /></div>
+    <div><label>Juros anual (%)</label><input id="annualInterest" type="number" value="10" step="0.1" /></div>
+    <div><label>Taxa administrativa anual (%)</label><input id="adminFee" type="number" value="2.4" step="0.1" /></div>
+    <div><label>LTV alvo (%)</label><input id="ltv" type="number" value="50" step="1" /></div>
+    <div><label>Reserva inicial (BTC)</label><input id="reserveBtc" type="number" value="0.52" step="0.000001" /></div>
+    <div><label>Ano início</label><input id="startYear" type="number" value="2026" /></div>
+    <div><label>Ano fim</label><input id="endYear" type="number" value="2029" /></div>
+  </div>
+
+  <div style="margin-top:10px;">
+  <button id="run">Simular</button>
+  <button id="save" class="secondary">Salvar resultado</button>
+  <button id="viewSaves" class="secondary">Ver salvos</button>
+  <p>Atalho: ctrl+enter para executar simulação.</p>
+</div>
+
+<!-- Modal simples para listar simulações salvas -->
+<div id="savedModal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.4); align-items:center; justify-content:center;">
+  <div style="background:white; padding:20px; border-radius:8px; width:90%; max-width:480px; max-height:80vh; overflow:auto;">
+    <h3>Simulações salvas</h3>
+    <ul id="savedList" style="list-style:none; padding:0;"></ul>
+    <button id="closeModal" style="margin-top:10px;">Fechar</button>
+  </div>
+</div>
+
+  
+</div>
+
+<div class="box" id="chartSection">
+  <div id="chartWrap"><canvas id="chart"></canvas></div>
+  <div id="summaryBox">
+    <h2>Resumo Final</h2>
+    <div>Patrimônio total: <span id="sumPatrimonio">-</span></div>
+    <div>BTC total comprado: <span id="sumBTC">-</span></div>
+	<div>BTC total (comprado + reserva): <span id="sumBTCTotal">-</span></div>
+    <div>Reserva total utilizada: <span id="sumReserva">-</span></div>
+    <div>Dívida total: <span id="sumDivida">-</span></div>
+  </div>
+</div>
+
+<div class="box" id="tableWrap"></div>
+
+<script>
+function formatBRL(v){return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});}
+function formatNum(v,d=6){return Number.isFinite(v)?v.toFixed(d):'-';}
+
+let rows=[];
+let chart;
+
+document.getElementById("platform").addEventListener("change", function() {
+  const platform = this.value;
+  if (platform === "Ledn") {
+    document.getElementById("annualInterest").value = 10;
+    document.getElementById("adminFee").value = 2.4;
+  } else if (platform === "Aave") {
+    document.getElementById("annualInterest").value = 6;
+    document.getElementById("adminFee").value = 0;
+  }
+});
+
+
+document.getElementById("run").addEventListener("click",runSim);
+
+function runSim() {
+  const platform = document.getElementById("platform").value;
+  const btcUsd = +document.getElementById("btcUsd").value;
+  const usdBrl = +document.getElementById("usdBrl").value;
+  const btcGrowth = +document.getElementById("btcGrowth").value / 100;
+  const monthlySalary = +document.getElementById("monthlySalary").value;
+  const plr = +document.getElementById("plr").value;
+  const initialAporte = +document.getElementById("initialAporte").value;
+  const monthlyWithdraw = +document.getElementById("monthlyWithdraw").value;
+  const annualInterest = +document.getElementById("annualInterest").value / 100;
+  const adminFee = +document.getElementById("adminFee").value / 100;
+  const ltvTarget = +document.getElementById("ltv").value / 100;
+  let reserveBtc = +document.getElementById("reserveBtc").value;
+  const startYear = +document.getElementById("startYear").value;
+  const endYear = +document.getElementById("endYear").value;
+
+  let btcPriceBrl = btcUsd * usdBrl;
+  const monthlyRate = Math.pow(1 + annualInterest + adminFee, 1 / 12) - 1;
+  const monthlyBtcGrowth = Math.pow(1 + btcGrowth, 1 / 12) - 1;
+
+  rows = [];
+  let btcTotal = 0, totalInvested = 0, debt = 0, firstMonth = true;
+  let totalReservaUsada = 0;
+  let totalBtcComprado = 0; // ✅ novo acumulador
+
+  for (let year = startYear; year <= endYear; year++) {
+    for (let m = 1; m <= 12; m++) {
+      if (!(year === startYear && m === 1)) btcPriceBrl *= (1 + monthlyBtcGrowth);
+
+      let invest = monthlySalary;
+      if (m === 1) invest += plr;
+      if (firstMonth) invest += initialAporte;
+      firstMonth = false;
+      totalInvested += invest;
+
+      const btcBought = invest / btcPriceBrl;
+      btcTotal += btcBought;
+      totalBtcComprado += btcBought; // ✅ acumula apenas o comprado
+
+      let loanTaken = 0, debtFinal = 0, collateralNeededBTC = 0, reserveUsed = 0;
+
+      if (platform === "Ledn") {
+        loanTaken = monthlyWithdraw + debt;
+        debtFinal = loanTaken * (1 + monthlyRate);
+        const collateralNeededBRL = loanTaken / ltvTarget;
+        collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
+
+        if (btcTotal < collateralNeededBTC) {
+          reserveUsed = Math.min(collateralNeededBTC - btcTotal, reserveBtc);
+          reserveBtc -= reserveUsed;
+          btcTotal += reserveUsed;
+        }
+        debt = debtFinal;
+      } else if (platform === "Aave") {
+        debt += monthlyWithdraw;
+        debt *= (1 + monthlyRate);
+        const collateralNeededBRL = debt / ltvTarget;
+        collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
+
+        if (btcTotal < collateralNeededBTC) {
+          reserveUsed = Math.min(collateralNeededBTC - btcTotal, reserveBtc);
+          reserveBtc -= reserveUsed;
+          btcTotal += reserveUsed;
+        }
+        debtFinal = debt;
+      }
+
+      totalReservaUsada += reserveUsed;
+      const patrimonio = (btcTotal + reserveBtc) * btcPriceBrl;
+
+      rows.push({
+        date: `${String(m).padStart(2, "0")}/${year}`,
+        btcPriceBrl, invest, totalInvested, btcBought, btcTotal,
+        reserveUsed, reserveBtc, loanTaken: monthlyWithdraw, debtFinal,
+        collateralNeededBTC, ltv: debtFinal / (btcTotal * btcPriceBrl),
+        patrimonio
+      });
+    }
+  }
+
+// gerar tabela
+  let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
+  rows.forEach(r=>{
+    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  document.getElementById("tableWrap").innerHTML = html;
+
+  // gerar gráfico
+  const labels = rows.map(r=>r.date);
+  const debtData = rows.map(r=>r.debtFinal);
+  const patrimonioData = rows.map(r=>r.patrimonio);
+
+  const annotations = {};
+  labels.forEach((l,i)=>{
+    if(l.startsWith("01/") && l!=="01/"+startYear){
+      annotations["line"+i] = {
+        type:'line',
+        xMin:i,
+        xMax:i,
+        borderColor:'rgba(100,100,100,0.4)',
+        borderWidth:1,
+        label:{enabled:true,content:l.slice(3),position:'start',color:'#555',font:{size:10}}
+      };
+    }
+  });
+
+  if(chart) chart.destroy();
+  const ctx = document.getElementById("chart").getContext("2d");
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Dívida (R$)', data:debtData, yAxisID:'y2', borderColor:'red', fill:false, tension:0.15 },
+        { label:'Patrimônio (R$)', data:patrimonioData, yAxisID:'y2', borderColor:'blue', fill:false, tension:0.15 }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      stacked:false,
+      plugins:{ annotation:{annotations} },
+      scales:{
+        y2:{ type:'linear', position:'left', title:{display:true,text:'Reais (R$)'}, grid:{drawOnChartArea:true} }
+      }
+    }
+  });
+
+  // resumo final (corrigido)
+  const last = rows[rows.length - 1];
+  document.getElementById("sumPatrimonio").textContent = formatBRL(last.patrimonio);
+  document.getElementById("sumBTC").textContent = formatNum(totalBtcComprado, 4) + " ₿"; // ✅ corrigido
+  document.getElementById("sumReserva").textContent = formatNum(totalReservaUsada, 4) + " ₿";
+  document.getElementById("sumDivida").textContent = formatBRL(last.debtFinal);
+  document.getElementById("sumBTCTotal").textContent = formatNum(last.btcTotal + last.reserveBtc, 4) + " ₿";
+
+}
+// ✅ Salvar resultado da simulação
+document.getElementById("save").addEventListener("click", function() {
+  if (rows.length === 0) {
+    alert("Nenhuma simulação encontrada. Execute a simulação primeiro.");
+    return;
+  }
+
+  const last = rows[rows.length - 1];
+  const simData = {
+    id: Date.now(),
+    date: new Date().toLocaleString(),
+    platform: document.getElementById("platform").value,
+    patrimonio: last.patrimonio,
+    btcTotal: last.btcTotal,
+    debtFinal: last.debtFinal,
+    data: rows
+  };
+
+  let saves = JSON.parse(localStorage.getItem("simulacoes") || "[]");
+  saves.push(simData);
+  localStorage.setItem("simulacoes", JSON.stringify(saves));
+
+  alert("Simulação salva com sucesso!");
+});
+
+// ✅ Ver simulações salvas
+document.getElementById("viewSaves").addEventListener("click", function() {
+  const saves = JSON.parse(localStorage.getItem("simulacoes") || "[]");
+  const list = document.getElementById("savedList");
+  list.innerHTML = "";
+
+  if (saves.length === 0) {
+    list.innerHTML = "<li>Nenhuma simulação salva.</li>";
+  } else {
+    saves.forEach(s => {
+      const li = document.createElement("li");
+      li.style.marginBottom = "10px";
+      li.innerHTML = `
+        <strong>${s.platform}</strong> — ${s.date}<br>
+        Patrimônio: ${formatBRL(s.patrimonio)} | BTC: ${formatNum(s.btcTotal,4)} | Dívida: ${formatBRL(s.debtFinal)}<br>
+        <button data-id="${s.id}" class="loadSaved">Carregar</button>
+        <button data-id="${s.id}" class="deleteSaved" style="background:#dc2626;">Excluir</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  document.getElementById("savedModal").style.display = "flex";
+});
+
+// ✅ Fechar modal
+document.getElementById("closeModal").addEventListener("click", function() {
+  document.getElementById("savedModal").style.display = "none";
+});
+
+// ✅ Carregar simulação salva
+document.getElementById("savedList").addEventListener("click", function(e) {
+  if (e.target.classList.contains("loadSaved")) {
+    const id = +e.target.dataset.id;
+    const saves = JSON.parse(localStorage.getItem("simulacoes") || "[]");
+    const sim = saves.find(s => s.id === id);
+    if (sim) {
+      rows = sim.data;
+      document.getElementById("savedModal").style.display = "none";
+      alert("Simulação carregada!");
+      // Recria tabela e gráfico
+      rebuildFromRows();
+    }
+  } else if (e.target.classList.contains("deleteSaved")) {
+    const id = +e.target.dataset.id;
+    let saves = JSON.parse(localStorage.getItem("simulacoes") || "[]");
+    saves = saves.filter(s => s.id !== id);
+    localStorage.setItem("simulacoes", JSON.stringify(saves));
+    e.target.parentElement.remove();
+  }
+});
+
+// ✅ Função auxiliar para reconstruir gráfico/tabela ao carregar simulação
+function rebuildFromRows() {
+  let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
+  rows.forEach(r=>{
+    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
+  });
+  html += "</tbody></table>";
+  document.getElementById("tableWrap").innerHTML = html;
+
+  const labels = rows.map(r=>r.date);
+  const debtData = rows.map(r=>r.debtFinal);
+  const patrimonioData = rows.map(r=>r.patrimonio);
+
+  if(chart) chart.destroy();
+  const ctx = document.getElementById("chart").getContext("2d");
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:'Dívida (R$)', data:debtData, yAxisID:'y2', borderColor:'red', fill:false, tension:0.15 },
+        { label:'Patrimônio (R$)', data:patrimonioData, yAxisID:'y2', borderColor:'blue', fill:false, tension:0.15 }
+      ]
+    },
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      stacked:false,
+      scales:{
+        y2:{ type:'linear', position:'left', title:{display:true,text:'Reais (R$)'} }
+      }
+    }
+  });
+
+  const last = rows[rows.length - 1];
+  document.getElementById("sumPatrimonio").textContent = formatBRL(last.patrimonio);
+  document.getElementById("sumBTC").textContent = formatNum(last.btcTotal, 4) + " ₿";
+  document.getElementById("sumReserva").textContent = formatNum(last.reserveUsed, 4) + " ₿";
+  document.getElementById("sumDivida").textContent = formatBRL(last.debtFinal);
+  document.getElementById("sumBTCTotal").textContent = formatNum(last.btcTotal + last.reserveBtc, 4) + " ₿";
+}
+
+// ✅ Executar simulação com Ctrl + Enter
+document.addEventListener("keydown", function (event) {
+  if (event.ctrlKey && event.key === "Enter") {
+    event.preventDefault();
+    runSim();
+  }
+});
+
+// Executar simulação com Ctrl + Enter
+document.addEventListener("keydown", function (event) {
+  if (event.ctrlKey && event.key === "Enter") {
+    event.preventDefault(); // evita comportamentos inesperados
+    runSim();
+  }
+});
+
+</script>
+</body>
+</html>
