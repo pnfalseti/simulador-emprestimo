@@ -8,63 +8,141 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1"></script>
 <style>
-  body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; padding:18px; background:#f7fafc; color:#0f172a; }
-  h1 { margin:0 0 12px; font-size:20px; }
-  .box { background:white; border-radius:8px; padding:14px; box-shadow:0 6px 18px rgba(2,6,23,0.06); margin-bottom:14px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
-  label { font-size:12px; color:#334155; display:block; margin-bottom:6px; }
-  input[type="number"], select { width:100%; padding:8px 10px; border:1px solid #e2e8f0; border-radius:6px; font-size:14px; }
-  button { background:#0ea5a4; color:white; padding:10px 12px; border:0; border-radius:8px; cursor:pointer; font-weight:600; }
-  button.secondary { background:#64748b; margin-left:8px; }
-  table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
-  th, td { padding:8px 6px; border-bottom:1px solid #e6eef6; text-align:right; }
-  th { background:#fbfdfe; position:sticky; top:0; z-index:10; font-weight:700; }
-  td.left, th.left { text-align:left; }
-  tbody tr:nth-child(even) { background-color:#f9fafb; }
-  tbody tr:nth-child(odd) { background-color:#ffffff; }
-  tbody tr:hover { background-color:#d1fae5 !important; transition: background-color 0.2s ease; }
+:root {
+  --bg: #f7fafc;
+  --text: #0f172a;
+  --box: #ffffff;
+  --border: #e2e8f0;
+  --table-even: #f9fafb;
+  --table-odd: #ffffff;
+  --hover: #d1fae5;
+  --summary-bg: #d1fae5;
+}
 
-  #chartSection {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: flex-start;
-  }
+body.dark {
+  --bg: #0f172a;
+  --text: #e2e8f0;
+  --box: #1e293b;
+  --border: #334155;
+  --table-even: #1e293b;
+  --table-odd: #172033;
+  --hover: #134e4a;
+  --summary-bg: #134e4a;
+}
 
-  #chartWrap {
-    flex: 3;
-    min-width: 300px;
-    height: 320px;
-  }
+body {
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto;
+  padding:18px;
+  background:var(--bg);
+  color:var(--text);
+  transition: background .3s, color .3s;
+}
 
-  #summaryBox {
-    flex: 1;
-    min-width: 200px;
-    background: #d1fae5;
-    border-radius: 8px;
-    padding: 16px;
-    border: 1px solid #e2e8f0;
-  }
+h1 { margin:0 0 12px; font-size:20px; }
 
-  #summaryBox h2 {
-    font-size: 16px;
-    margin-bottom: 10px;
-  }
+.box {
+  background:var(--box);
+  border-radius:8px;
+  padding:14px;
+  box-shadow:0 6px 18px rgba(2,6,23,0.06);
+  margin-bottom:14px;
+  border:1px solid var(--border);
+  transition: background .3s;
+}
 
-  #summaryBox div {
-    font-size: 14px;
-    margin-bottom: 8px;
-  }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
 
-  #summaryBox span {
-    font-weight: 600;
-    color: #0f172a;
-  }
+label { font-size:12px; display:block; margin-bottom:6px; }
 
-  #tableWrap { overflow:auto; max-height:420px; position:relative; }
+input[type="number"], select {
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:6px;
+  font-size:14px;
+  background:var(--box);
+  color:var(--text);
+}
+
+button {
+  background:#0ea5a4;
+  color:white;
+  padding:10px 12px;
+  border:0;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+button.secondary { background:#64748b; margin-left:8px; }
+
+table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+  margin-top:10px;
+}
+
+th, td {
+  padding:8px 6px;
+  border-bottom:1px solid var(--border);
+  text-align:right;
+}
+
+th {
+  background:var(--box);
+  position:sticky;
+  top:0;
+  z-index:10;
+  font-weight:700;
+}
+
+td.left, th.left { text-align:left; }
+
+tbody tr:nth-child(even) { background-color:var(--table-even); }
+tbody tr:nth-child(odd) { background-color:var(--table-odd); }
+tbody tr:hover { background-color:var(--hover) !important; }
+
+#summaryBox {
+  flex:1;
+  min-width:200px;
+  background:var(--summary-bg);
+  border-radius:8px;
+  padding:16px;
+  border:1px solid var(--border);
+}
+
+#tableWrap { overflow:auto; max-height:420px; position:relative; }
+
+/* ===== Botão Dark Mode ===== */
+
+#themeToggle {
+  position:fixed;
+  top:16px;
+  right:16px;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:none;
+  background:var(--box);
+  box-shadow:0 4px 12px rgba(0,0,0,0.2);
+  cursor:pointer;
+  font-size:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition: all .3s;
+  z-index:999;
+}
+
+#themeToggle:hover {
+  transform:scale(1.1);
+}
 </style>
+
 </head>
 <body>
+<button id="themeToggle" title="Alternar modo claro/escuro">🌙</button>
 
 <h1>Simulador - Empréstimos com garantia em BTC</h1>
 
@@ -77,12 +155,12 @@
       </select>
     </div>
     <div><label>Preço BTC (USD) em jan/2026</label><input id="btcUsd" type="number" value="130000" step="100" /></div>
-    <div><label>Câmbio (R$/USD)</label><input id="usdBrl" type="number" value="5.5" step="0.01" /></div>
+    <div><label>Câmbio (R$/USD)</label><input id="usdBrl" type="number" value="6" step="0.01" /></div>
     <div><label>Valorização BTC (ano %)</label><input id="btcGrowth" type="number" value="25" step="0.1" /></div>
-    <div><label>Salário/aporte convertido mensal (R$)</label><input id="monthlySalary" type="number" value="0" step="100" /></div>
-    <div><label>PLR (R$) — janeiro de cada ano</label><input id="plr" type="number" value="0" step="100" /></div>
-    <div><label>Aporte único (R$)</label><input id="initialAporte" type="number" value="0" step="100" /></div>
-    <div><label>Saque líquido mensal (R$)</label><input id="monthlyWithdraw" type="number" value="0" step="100" /></div>
+    <div><label>Salário/aporte convertido mensal (R$)</label><input id="monthlySalary" type="number" value="12000" step="100" /></div>
+    <div><label>PLR (R$) — janeiro de cada ano</label><input id="plr" type="number" value="10000" step="100" /></div>
+    <div><label>Aporte único (R$)</label><input id="initialAporte" type="number" value="35000" step="100" /></div>
+    <div><label>Saque líquido mensal (R$)</label><input id="monthlyWithdraw" type="number" value="9000" step="100" /></div>
     <div><label>Juros anual (%)</label><input id="annualInterest" type="number" value="10" step="0.1" /></div>
     <div><label>Taxa administrativa anual (%)</label><input id="adminFee" type="number" value="2.4" step="0.1" /></div>
     <div><label>LTV alvo (%)</label><input id="ltv" type="number" value="50" step="1" /></div>
@@ -417,9 +495,68 @@ document.addEventListener("keydown", function (event) {
     runSim();
   }
 });
+// =======================
+// DARK MODE
+// =======================
+
+const themeToggle = document.getElementById("themeToggle");
+const prefersDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+function setTheme(mode) {
+  if (mode === "dark") {
+    document.body.classList.add("dark");
+    themeToggle.textContent = "☀️";
+  } else {
+    document.body.classList.remove("dark");
+    themeToggle.textContent = "🌙";
+  }
+  localStorage.setItem("theme", mode);
+  updateChartTheme();
+}
+
+// Detectar sistema automaticamente (se não tiver salvo)
+const savedTheme = localStorage.getItem("theme");
+
+if (savedTheme) {
+  setTheme(savedTheme);
+} else {
+  setTheme(prefersDark.matches ? "dark" : "light");
+}
+
+// Se sistema mudar automaticamente
+prefersDark.addEventListener("change", e => {
+  if (!localStorage.getItem("theme")) {
+    setTheme(e.matches ? "dark" : "light");
+  }
+});
+
+themeToggle.addEventListener("click", () => {
+  const isDark = document.body.classList.contains("dark");
+  setTheme(isDark ? "light" : "dark");
+});
+
+// =======================
+// Atualizar gráfico no dark
+// =======================
+
+function updateChartTheme() {
+  if (!chart) return;
+
+  const isDark = document.body.classList.contains("dark");
+
+  chart.options.scales.y2.ticks = {
+    color: isDark ? "#e2e8f0" : "#0f172a"
+  };
+
+  chart.options.plugins.legend = {
+    labels: {
+      color: isDark ? "#e2e8f0" : "#0f172a"
+    }
+  };
+
+  chart.update();
+}
 
 </script>
 </body>
 </html>
-
-
