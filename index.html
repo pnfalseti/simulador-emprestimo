@@ -143,6 +143,7 @@ tbody tr:hover { background-color:var(--hover) !important; }
     height: 240px;
     max-width: 70%;
   }
+  
 }
 
 
@@ -256,9 +257,17 @@ function runSim() {
   let totalReservaUsada = 0;
   let totalBtcComprado = 0; // ✅ novo acumulador
 
-  for (let year = startYear; year <= endYear; year++) {
-    for (let m = 1; m <= 12; m++) {
-      if (!(year === startYear && m === 1)) btcPriceBrl *= (1 + monthlyBtcGrowth);
+  const today = new Date();
+const currentYear = today.getFullYear();
+const currentMonth = today.getMonth() + 1; // 1 a 12
+
+for (let year = startYear; year <= endYear; year++) {
+
+  // Se for o ano atual, começa no mês atual
+  let monthStart = (year === currentYear) ? currentMonth : 1;
+
+  for (let m = monthStart; m <= 12; m++) {
+      if (rows.length > 0) btcPriceBrl *= (1 + monthlyBtcGrowth);
 
       let invest = monthlySalary;
       if (m === 1) invest += plr;
