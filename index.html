@@ -145,15 +145,33 @@ tbody tr:hover { background-color:var(--hover) !important; }
   }
   
 }
+.ltv-green{
+  background:#16a34a;
+  color:white;
+  font-weight:600;
+}
 
+.ltv-orange{
+  background:#f97316;
+  color:white;
+  font-weight:600;
+}
 
+.ltv-red{
+  background:#dc2626;
+  color:white;
+  font-weight:600;
+}
 </style>
 
 </head>
 <body>
 <button id="themeToggle" title="Alternar modo claro/escuro">🌙</button>
 
-<h1>Simulador - Empréstimos com garantia em BTC</h1>
+<h1>Simulador BTC</h1>
+<p class="subtitle">
+Compra mensal • aposentadoria em BTC • projeção de preço • valor da reserva • empréstimos com garantia • saques mensais
+</p>
 
 <div class="box">
   <div class="grid">
@@ -222,10 +240,12 @@ tbody tr:hover { background-color:var(--hover) !important; }
   <div id="summaryBox">
     <h2>Resumo Final</h2>
     <div>Patrimônio total: <span id="sumPatrimonio">-</span></div>
+	<div>Total investido: <span id="sumInvestido">-</span></div>
     <div>BTC total comprado: <span id="sumBTC">-</span></div>
 	<div>BTC total (comprado + reserva): <span id="sumBTCTotal">-</span></div>
     <div>Reserva total utilizada: <span id="sumReserva">-</span></div>
     <div>Dívida total: <span id="sumDivida">-</span></div>
+	<div>Status: <span id="sumStatus">-</span></div>
   </div>
 </div>
 
@@ -237,6 +257,7 @@ function formatNum(v,d=6){return Number.isFinite(v)?v.toFixed(d):'-';}
 
 let rows=[];
 let chart;
+let simStatus = "OK";
 
 document.getElementById("platform").addEventListener("change", function() {
   const platform = this.value;
@@ -278,6 +299,7 @@ function runSim() {
   let btcTotal = 0, totalInvested = 0, debt = 0, firstMonth = true;
   let totalReservaUsada = 0;
   let totalBtcComprado = 0; // ✅ novo acumulador
+  simStatus = "OK";
 
   const today = new Date();
 const currentYear = today.getFullYear();
@@ -293,9 +315,9 @@ for (let year = startYear; year <= endYear; year++) {
 
       let invest = monthlySalary;
       // PLR entra no mês selecionado
-if (m === plrMonth && plr > 0) {
-  invest += plr;
-}
+	if (m === plrMonth && plr > 0) {
+	  invest += plr;
+	}
       if (firstMonth) invest += initialAporte;
       firstMonth = false;
       totalInvested += invest;
@@ -325,30 +347,65 @@ if (m === plrMonth && plr > 0) {
         collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
 
         if (btcTotal < collateralNeededBTC) {
-          reserveUsed = Math.min(collateralNeededBTC - btcTotal, reserveBtc);
-          reserveBtc -= reserveUsed;
-          btcTotal += reserveUsed;
-        }
+
+		  const needed = collateralNeededBTC - btcTotal;
+
+		  if (reserveBtc >= needed) {
+			reserveUsed = needed;
+			reserveBtc -= reserveUsed;
+			btcTotal += reserveUsed;
+		  } else {
+
+			// reserva insuficiente
+			reserveUsed = reserveBtc;
+			btcTotal += reserveUsed;
+			reserveBtc = 0;
+
+			simStatus = "Falhou: reserva insuficiente";
+		  }
+		}
         debtFinal = debt;
       }
 
       totalReservaUsada += reserveUsed;
       const patrimonio = (btcTotal + reserveBtc) * btcPriceBrl;
 
-      rows.push({
-        date: `${String(m).padStart(2, "0")}/${year}`,
-        btcPriceBrl, invest, totalInvested, btcBought, btcTotal,
-        reserveUsed, reserveBtc, loanTaken: monthlyWithdraw, debtFinal,
-        collateralNeededBTC, ltv: debtFinal / (btcTotal * btcPriceBrl),
-        patrimonio
-      });
+      const ltvValue = debtFinal / (btcTotal * btcPriceBrl);
+
+		let ltvClass = "ltv-green";
+
+		if (ltvValue > 0.60) ltvClass = "ltv-red";
+		else if (ltvValue > 0.50) ltvClass = "ltv-orange";
+
+		if (ltvValue > 0.78) {
+		  simStatus = "Liquidado (LTV > 78%)";
+		}
+
+		rows.push({
+		  date: `${String(m).padStart(2, "0")}/${year}`,
+		  btcPriceBrl,
+		  invest,
+		  totalInvested,
+		  btcBought,
+		  btcTotal,
+		  reserveUsed,
+		  reserveBtc,
+		  loanTaken: monthlyWithdraw,
+		  debtFinal,
+		  collateralNeededBTC,
+		  ltv: ltvValue,
+		  ltvClass,
+		  patrimonio
+		});
+		// PARAR SIMULAÇÃO SE HOUVER FALHA
+		if (simStatus !== "OK") break;
     }
   }
 
 // gerar tabela
   let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
   rows.forEach(r=>{
-    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
+    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td class="${r.ltvClass}">${(r.ltv*100).toFixed(2)}%</td></tr>`;
   });
   html += "</tbody></table>";
   document.getElementById("tableWrap").innerHTML = html;
@@ -397,10 +454,13 @@ if (m === plrMonth && plr > 0) {
   // resumo final (corrigido)
   const last = rows[rows.length - 1];
   document.getElementById("sumPatrimonio").textContent = formatBRL(last.patrimonio);
+  document.getElementById("sumInvestido").textContent = formatBRL(totalInvested);
   document.getElementById("sumBTC").textContent = formatNum(totalBtcComprado, 4) + " ₿"; // ✅ corrigido
   document.getElementById("sumReserva").textContent = formatNum(totalReservaUsada, 4) + " ₿";
   document.getElementById("sumDivida").textContent = formatBRL(last.debtFinal);
   document.getElementById("sumBTCTotal").textContent = formatNum(last.btcTotal + last.reserveBtc, 4) + " ₿";
+  document.getElementById("sumStatus").textContent = 
+  simStatus === "OK" ? "Sucesso" : simStatus;
 
 }
 // ✅ Salvar resultado da simulação
@@ -482,6 +542,8 @@ document.getElementById("savedList").addEventListener("click", function(e) {
 
 // ✅ Função auxiliar para reconstruir gráfico/tabela ao carregar simulação
 function rebuildFromRows() {
+document.getElementById("sumStatus").textContent = 
+  simStatus === "OK" ? "Sucesso" : simStatus;
   let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
   rows.forEach(r=>{
     html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
@@ -516,6 +578,7 @@ function rebuildFromRows() {
 
   const last = rows[rows.length - 1];
   document.getElementById("sumPatrimonio").textContent = formatBRL(last.patrimonio);
+  document.getElementById("sumInvestido").textContent = formatBRL(totalInvested);
   document.getElementById("sumBTC").textContent = formatNum(last.btcTotal, 4) + " ₿";
   document.getElementById("sumReserva").textContent = formatNum(last.reserveUsed, 4) + " ₿";
   document.getElementById("sumDivida").textContent = formatBRL(last.debtFinal);
@@ -598,7 +661,7 @@ function updateChartTheme() {
 
   chart.update();
 }
-
+document.getElementById("sumStatus").textContent = simStatus;
 </script>
 </body>
 </html>
