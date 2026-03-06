@@ -205,9 +205,9 @@ Compra mensal • aposentadoria em BTC • projeção de preço • valor da res
 <div class="box">
   <div class="form-grid">
 
-<!-- EMPRÉSTIMOS -->
+<!-- EMPRÉSTIMO -->
 <div class="box div1">
-<b>Empréstimos</b>
+<b>Empréstimo</b>
 <div class="grid">
 
 <div>
@@ -468,6 +468,9 @@ for (let year = startYear; year <= endYear; year++) {
       } else if (platform === "Aave") {
         debt += monthlyWithdraw;
         debt *= (1 + monthlyRate);
+		// calcular colateral necessário baseado no LTV alvo
+const collateralNeededBRL = debt / ltvTarget;
+collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
         // calcula LTV atual
 let ltvValue = debt / (btcTotal * btcPriceBrl);
 
