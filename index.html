@@ -393,6 +393,11 @@ document.getElementById("platform").addEventListener("change", function() {
     document.getElementById("annualInterest").value = 6;
     document.getElementById("adminFee").value = 0;
   }
+  const aporteFields = ["monthlySalary","plr","plrMonth","initialAporte"];
+
+  aporteFields.forEach(id=>{
+    document.getElementById(id).disabled = platform === "Ledn";
+  });
 });
 
 
@@ -419,7 +424,8 @@ function runSim() {
   let btcPriceBrl = btcUsd * usdBrl;
   const monthlyRate = Math.pow(1 + annualInterest + adminFee, 1 / 12) - 1;
   const monthlyBtcGrowth = Math.pow(1 + btcGrowth, 1 / 12) - 1;
-
+	let lednCollateralBTC = 0;
+	let lastYearCollateral = 0;
   rows = [];
   let btcTotal = 0, totalInvested = 0, debt = 0, firstMonth = true;
   let totalReservaUsada = 0;
@@ -432,6 +438,15 @@ const currentMonth = today.getMonth() + 1; // 1 a 12
 
 for (let year = startYear; year <= endYear; year++) {
 
+	if (platform === "Ledn") {
+
+    // devolve o colateral do ano anterior para reserva
+    reserveBtc += lastYearCollateral;
+
+    // zera colateral do ano atual
+    lednCollateralBTC = 0;
+    lastYearCollateral = 0;
+  }
   // Se for o ano atual, começa no mês atual
   let monthStart = (year === currentYear) ? currentMonth : 1;
 
@@ -454,33 +469,84 @@ for (let year = startYear; year <= endYear; year++) {
       let loanTaken = 0, debtFinal = 0, collateralNeededBTC = 0, reserveUsed = 0;
 
       if (platform === "Ledn") {
-        loanTaken = monthlyWithdraw + debt;
-        debtFinal = loanTaken * (1 + monthlyRate);
-        const collateralNeededBRL = loanTaken / ltvTarget;
-        collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
 
-        if (btcTotal < collateralNeededBTC) {
-          reserveUsed = Math.min(collateralNeededBTC - btcTotal, reserveBtc);
-          reserveBtc -= reserveUsed;
-          btcTotal += reserveUsed;
-        }
-        debt = debtFinal;
-      } else if (platform === "Aave") {
+  if (m !== 1) continue;
+
+  const annualWithdraw = monthlyWithdraw * 12;
+
+  loanTaken = annualWithdraw + debt;
+
+  debt = loanTaken * (1 + annualInterest + adminFee);
+
+  debtFinal = debt;
+
+  // colateral atual
+  let collateralBTC = lednCollateralBTC;
+
+  const collateralValue = collateralBTC * btcPriceBrl;
+
+  let ltvValue = collateralBTC > 0
+    ? debt / collateralValue
+    : Infinity;
+
+  collateralNeededBTC = debt / (btcPriceBrl * ltvTarget);
+
+  if (ltvValue >= ltvReserveTrigger || collateralBTC === 0) {
+
+    const btcNeeded = collateralNeededBTC - collateralBTC;
+
+    if (btcNeeded > 0) {
+
+      if (reserveBtc >= btcNeeded) {
+
+        reserveUsed = btcNeeded;
+        reserveBtc -= reserveUsed;
+
+      } else {
+
+        reserveUsed = reserveBtc;
+        reserveBtc = 0;
+
+        simStatus = "Falhou: reserva insuficiente";
+
+      }
+
+      collateralBTC += reserveUsed;
+      lednCollateralBTC += reserveUsed;
+
+    }
+
+  }
+
+  lastYearCollateral = lednCollateralBTC;
+
+  ltvValue = collateralBTC > 0
+    ? debt / (collateralBTC * btcPriceBrl)
+    : Infinity;
+
+  if (ltvValue >= 0.70) {
+    simStatus = "Liquidado (Ledn 70%)";
+  }
+
+} else if (platform === "Aave") {
         debt += monthlyWithdraw;
         debt *= (1 + monthlyRate);
 		// calcular colateral necessário baseado no LTV alvo
 const collateralNeededBRL = debt / ltvTarget;
 collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
         // calcula LTV atual
-let ltvValue = debt / (btcTotal * btcPriceBrl);
+let collateralBTC = btcTotal;
+let ltvValue = collateralBTC > 0
+  ? debt / (collateralBTC * btcPriceBrl)
+  : Infinity;
 
 // se ultrapassar o LTV de acionamento da reserva
 if (ltvValue >= ltvReserveTrigger) {
 
-  const maxDebtAllowed = (btcTotal * btcPriceBrl) * ltvReserveTrigger;
-  const debtExcess = debt - maxDebtAllowed;
+  const collateralNeededBRL = debt / ltvTarget;
+const collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
 
-  const btcNeeded = debtExcess / btcPriceBrl;
+const btcNeeded = collateralNeededBTC - btcTotal;
 
   if (reserveBtc >= btcNeeded) {
 
@@ -505,7 +571,21 @@ if (ltvValue >= ltvReserveTrigger) {
       totalReservaUsada += reserveUsed;
       const patrimonio = (btcTotal + reserveBtc) * btcPriceBrl;
 
-      const ltvValue = debt / (btcTotal * btcPriceBrl);
+let collateralBTC = 0;
+
+if (platform === "Ledn") {
+
+  collateralBTC = lednCollateralBTC;
+
+} else {
+
+  collateralBTC = btcTotal;
+
+}
+
+const ltvValue = collateralBTC > 0
+  ? debt / (collateralBTC * btcPriceBrl)
+  : Infinity;
 
 		let ltvClass = "ltv-green";
 
@@ -527,7 +607,7 @@ if (ltvValue >= ltvReserveTrigger) {
 		  reserveBtc,
 		  loanTaken: monthlyWithdraw,
 		  debtFinal,
-		  collateralNeededBTC,
+		  collateralBTC,
 		  ltv: ltvValue,
 		  ltvClass,
 		  patrimonio
@@ -544,7 +624,7 @@ if (ltvValue >= ltvReserveTrigger) {
 // gerar tabela
   let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
   rows.forEach(r=>{
-    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td class="${r.ltvClass}">${(r.ltv*100).toFixed(2)}%</td></tr>`;
+    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralBTC)}</td><td class="${r.ltvClass}">${(r.ltv*100).toFixed(2)}%</td></tr>`;
   });
   html += "</tbody></table>";
   document.getElementById("tableWrap").innerHTML = html;
@@ -685,7 +765,7 @@ document.getElementById("sumStatus").textContent =
   simStatus === "OK" ? "Sucesso" : simStatus;
   let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
   rows.forEach(r=>{
-    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralNeededBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
+    html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
   });
   html += "</tbody></table>";
   document.getElementById("tableWrap").innerHTML = html;
