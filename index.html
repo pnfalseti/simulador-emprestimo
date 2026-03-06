@@ -50,8 +50,37 @@ h1 { margin:0 0 12px; font-size:20px; }
   transition: background .3s;
 }
 
-.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
 
+/* cada bloco ocupa uma coluna */
+
+.div1 { grid-column: 1; }
+.div2 { grid-column: 2; }
+.div3 { grid-column: 3; }
+.div4 { grid-column: 4; }
+
+/* RESPONSIVO */
+
+@media (max-width: 900px) {
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .div1,
+  .div2,
+  .div3,
+  .div4 {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+}
 label { font-size:12px; display:block; margin-bottom:6px; }
 
 input[type="number"], select {
@@ -174,47 +203,143 @@ Compra mensal • aposentadoria em BTC • projeção de preço • valor da res
 </p>
 
 <div class="box">
-  <div class="grid">
-    <div><label>Plataforma</label>
-      <select id="platform">
-        <option value="Ledn">Ledn</option>
-        <option value="Aave">Aave</option>
-      </select>
-    </div>
-    <div><label>Preço BTC (USD) em jan/2026</label><input id="btcUsd" type="number" value="70000" step="100" /></div>
-    <div><label>Câmbio (R$/USD)</label><input id="usdBrl" type="number" value="6" step="0.01" /></div>
-    <div><label>Valorização BTC (ano %)</label><input id="btcGrowth" type="number" value="25" step="0.1" /></div>
-    <div><label>Salário/aporte convertido mensal (R$)</label><input id="monthlySalary" type="number" value="0" step="100" /></div>
-    <div>
-  <label>PLR (R$)</label>
-  <input id="plr" type="number" value="0" step="100" />
-</div>
+  <div class="form-grid">
+
+<!-- EMPRÉSTIMOS -->
+<div class="box div1">
+<b>Empréstimos</b>
+<div class="grid">
+
 <div>
-  <label>Mês da PLR</label>
-  <select id="plrMonth">
-    <option value="1">Janeiro</option>
-    <option value="2">Fevereiro</option>
-    <option value="3">Março</option>
-    <option value="4">Abril</option>
-    <option value="5">Maio</option>
-    <option value="6">Junho</option>
-    <option value="7">Julho</option>
-    <option value="8">Agosto</option>
-    <option value="9">Setembro</option>
-    <option value="10">Outubro</option>
-    <option value="11">Novembro</option>
-    <option value="12" selected>Dezembro</option>
-  </select>
+<label>Plataforma</label>
+<select id="platform">
+<option value="Ledn">Ledn</option>
+<option value="Aave">Aave</option>
+</select>
 </div>
-    <div><label>Aporte único (R$)</label><input id="initialAporte" type="number" value="0" step="100" /></div>
-    <div><label>Saque líquido mensal (R$)</label><input id="monthlyWithdraw" type="number" value="0" step="100" /></div>
-    <div><label>Juros anual (%)</label><input id="annualInterest" type="number" value="10" step="0.1" /></div>
-    <div><label>Taxa administrativa anual (%)</label><input id="adminFee" type="number" value="2.4" step="0.1" /></div>
-    <div><label>LTV alvo (%)</label><input id="ltv" type="number" value="50" step="1" /></div>
-    <div><label>Reserva inicial (BTC)</label><input id="reserveBtc" type="number" value="0" step="0.000001" /></div>
-    <div><label>Ano início</label><input id="startYear" type="number" value="2026" /></div>
-    <div><label>Ano fim</label><input id="endYear" type="number" value="2029" /></div>
-  </div>
+
+<div>
+<label>Juros anual (%)</label>
+<input id="annualInterest" type="number" value="10" step="0.1" />
+</div>
+
+<div>
+<label>Taxa administrativa anual (%)</label>
+<input id="adminFee" type="number" value="2.4" step="0.1" />
+</div>
+
+<div>
+<label>Saque líquido mensal (R$)</label>
+<input id="monthlyWithdraw" type="number" value="0" step="100" />
+</div>
+
+<div>
+<label>LTV alvo (%)</label>
+<input id="ltv" type="number" value="50" step="1" />
+</div>
+
+<div>
+<label>
+LTV acionado por reserva
+<span title="Quando o LTV atingir esse valor, a reserva será utilizada para reduzir o risco">ⓘ</span>
+</label>
+<input id="ltvReserve" type="number" value="65" step="1" />
+</div>
+
+</div>
+</div>
+
+
+<!-- BITCOIN -->
+<div class="box div2">
+<b>Bitcoin</b>
+<div class="grid">
+
+<div>
+<label>Preço BTC (USD)</label>
+<input id="btcUsd" type="number" value="70000" step="100" />
+</div>
+
+<div>
+<label>Câmbio (R$/USD)</label>
+<input id="usdBrl" type="number" value="6" step="0.01" />
+</div>
+
+<div>
+<label>Valorização BTC (ano %)</label>
+<input id="btcGrowth" type="number" value="25" step="0.1" />
+</div>
+
+<div>
+<label>Reserva inicial (BTC)</label>
+<input id="reserveBtc" type="number" value="0" step="0.000001" />
+</div>
+
+</div>
+</div>
+
+
+<!-- APORTES -->
+<div class="box div3">
+<b>Aportes</b>
+<div class="grid">
+
+<div>
+<label>Salário/aporte convertido mensal (R$)</label>
+<input id="monthlySalary" type="number" value="0" step="100" />
+</div>
+
+<div>
+<label>PLR (R$)</label>
+<input id="plr" type="number" value="0" step="100" />
+</div>
+
+<div>
+<label>Mês da PLR</label>
+<select id="plrMonth">
+<option value="1">Janeiro</option>
+<option value="2">Fevereiro</option>
+<option value="3">Março</option>
+<option value="4">Abril</option>
+<option value="5">Maio</option>
+<option value="6">Junho</option>
+<option value="7">Julho</option>
+<option value="8">Agosto</option>
+<option value="9">Setembro</option>
+<option value="10">Outubro</option>
+<option value="11">Novembro</option>
+<option value="12" selected>Dezembro</option>
+</select>
+</div>
+
+<div>
+<label>Aporte único (R$)</label>
+<input id="initialAporte" type="number" value="0" step="100" />
+</div>
+
+</div>
+</div>
+
+
+<!-- PERÍODO DA SIMULAÇÃO -->
+<div class="box div4">
+<b>Período da simulação</b>
+<div class="grid">
+
+<div>
+<label>Ano início</label>
+<input id="startYear" type="number" value="2026" />
+</div>
+
+<div>
+<label>Ano fim</label>
+<input id="endYear" type="number" value="2029" />
+</div>
+
+</div>
+</div>
+
+</div>
 
   <div style="margin-top:10px;">
   <button id="run">Simular</button>
@@ -289,7 +414,7 @@ function runSim() {
   let reserveBtc = +document.getElementById("reserveBtc").value;
   const startYear = +document.getElementById("startYear").value;
   const endYear = +document.getElementById("endYear").value;
-  
+  const ltvReserveTrigger = +document.getElementById("ltvReserve").value / 100;
 
   let btcPriceBrl = btcUsd * usdBrl;
   const monthlyRate = Math.pow(1 + annualInterest + adminFee, 1 / 12) - 1;
@@ -343,34 +468,41 @@ for (let year = startYear; year <= endYear; year++) {
       } else if (platform === "Aave") {
         debt += monthlyWithdraw;
         debt *= (1 + monthlyRate);
-        const collateralNeededBRL = debt / ltvTarget;
-        collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
+        // calcula LTV atual
+let ltvValue = debt / (btcTotal * btcPriceBrl);
 
-        if (btcTotal < collateralNeededBTC) {
+// se ultrapassar o LTV de acionamento da reserva
+if (ltvValue >= ltvReserveTrigger) {
 
-		  const needed = collateralNeededBTC - btcTotal;
+  const maxDebtAllowed = (btcTotal * btcPriceBrl) * ltvReserveTrigger;
+  const debtExcess = debt - maxDebtAllowed;
 
-		  if (reserveBtc >= needed) {
-			reserveUsed = needed;
-			reserveBtc -= reserveUsed;
-			btcTotal += reserveUsed;
-		  } else {
+  const btcNeeded = debtExcess / btcPriceBrl;
 
-			// reserva insuficiente
-			reserveUsed = reserveBtc;
-			btcTotal += reserveUsed;
-			reserveBtc = 0;
+  if (reserveBtc >= btcNeeded) {
 
-			simStatus = "Falhou: reserva insuficiente";
-		  }
-		}
+    reserveUsed = btcNeeded;
+    reserveBtc -= reserveUsed;
+    btcTotal += reserveUsed;
+
+  } else {
+
+    reserveUsed = reserveBtc;
+    btcTotal += reserveUsed;
+    reserveBtc = 0;
+
+    simStatus = "Falhou: reserva insuficiente";
+
+  }
+
+}
         debtFinal = debt;
       }
 
       totalReservaUsada += reserveUsed;
       const patrimonio = (btcTotal + reserveBtc) * btcPriceBrl;
 
-      const ltvValue = debtFinal / (btcTotal * btcPriceBrl);
+      const ltvValue = debt / (btcTotal * btcPriceBrl);
 
 		let ltvClass = "ltv-green";
 
@@ -400,6 +532,10 @@ for (let year = startYear; year <= endYear; year++) {
 		// PARAR SIMULAÇÃO SE HOUVER FALHA
 		if (simStatus !== "OK") break;
     }
+	// parar também o loop de anos
+  if (simStatus !== "OK") {
+    break;
+  }
   }
 
 // gerar tabela
