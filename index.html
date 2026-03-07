@@ -50,34 +50,84 @@ h1 { margin:0 0 12px; font-size:20px; }
   transition: background .3s;
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+/* GRID PRINCIPAL DOS FORMULÁRIOS */
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:14px;
+  align-items:start;
 }
 
-/* cada bloco ocupa uma coluna */
+/* CARDS */
 
-.div1 { grid-column: 1; }
-.div2 { grid-column: 2; }
-.div3 { grid-column: 3; }
-.div4 { grid-column: 4; }
+.form-grid .box{
+  margin:0;
+  padding:14px;
+  background:var(--box);
+  border:1px solid var(--border);
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.05);
+}
+
+/* TITULO DOS CARDS */
+
+.form-grid b{
+  display:block;
+  font-size:14px;
+  margin-bottom:10px;
+  color:var(--text);
+  border-bottom:1px solid var(--border);
+  padding-bottom:6px;
+}
+
+/* GRID INTERNO DOS INPUTS */
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+/* CAMPOS GRANDES */
+
+.grid .full{
+  grid-column:1 / -1;
+}
+
+/* LABEL */
+
+label{
+  font-size:12px;
+  margin-bottom:4px;
+  color:var(--text);
+  opacity:0.8;
+}
+
+/* INPUTS */
+
+input[type="number"], select{
+  width:100%;
+  padding:8px 10px;
+  border-radius:6px;
+  border:1px solid var(--border);
+  background:var(--box);
+  color:var(--text);
+  transition:.2s;
+}
+
+input:focus, select:focus{
+  outline:none;
+  border-color:#0ea5a4;
+  box-shadow:0 0 0 2px rgba(14,165,164,0.15);
+}
 
 /* RESPONSIVO */
 
-@media (max-width: 900px) {
+@media (max-width:900px){
 
-  .form-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-  }
-
-  .div1,
-  .div2,
-  .div3,
-  .div4 {
-    grid-column: auto;
-    grid-row: auto;
+  .grid{
+    grid-template-columns:1fr;
   }
 
 }
@@ -191,6 +241,18 @@ tbody tr:hover { background-color:var(--hover) !important; }
   color:white;
   font-weight:600;
 }
+input:disabled,
+select:disabled{
+  background:#e5e7eb;
+  color:#6b7280;
+  cursor:not-allowed;
+}
+
+body.dark input:disabled,
+body.dark select:disabled{
+  background:#334155;
+  color:#94a3b8;
+}
 </style>
 
 </head>
@@ -214,18 +276,18 @@ Compra mensal • aposentadoria em BTC • projeção de preço • valor da res
 <label>Plataforma</label>
 <select id="platform">
 <option value="Ledn">Ledn</option>
-<option value="Aave">Aave</option>
+<option value="Aave" selected>Aave</option>
 </select>
 </div>
 
 <div>
 <label>Juros anual (%)</label>
-<input id="annualInterest" type="number" value="10" step="0.1" />
+<input id="annualInterest" type="number" value="6" step="0.1" />
 </div>
 
 <div>
 <label>Taxa administrativa anual (%)</label>
-<input id="adminFee" type="number" value="2.4" step="0.1" />
+<input id="adminFee" type="number" value="0" step="0.1" />
 </div>
 
 <div>
@@ -399,7 +461,8 @@ document.getElementById("platform").addEventListener("change", function() {
     document.getElementById(id).disabled = platform === "Ledn";
   });
 });
-
+// executa ao carregar
+document.getElementById("platform").dispatchEvent(new Event("change"));
 
 document.getElementById("run").addEventListener("click",runSim);
 
@@ -485,9 +548,11 @@ for (let year = startYear; year <= endYear; year++) {
 
   const collateralValue = collateralBTC * btcPriceBrl;
 
-  let ltvValue = collateralBTC > 0
-    ? debt / collateralValue
-    : Infinity;
+  let ltvValue = 0;
+
+if (debt > 0 && collateralBTC > 0) {
+  ltvValue = debt / (collateralBTC * btcPriceBrl);
+}
 
   collateralNeededBTC = debt / (btcPriceBrl * ltvTarget);
 
@@ -529,44 +594,42 @@ for (let year = startYear; year <= endYear; year++) {
   }
 
 } else if (platform === "Aave") {
-        debt += monthlyWithdraw;
-        debt *= (1 + monthlyRate);
-		// calcular colateral necessário baseado no LTV alvo
-const collateralNeededBRL = debt / ltvTarget;
-collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
-        // calcula LTV atual
-let collateralBTC = btcTotal;
-let ltvValue = collateralBTC > 0
-  ? debt / (collateralBTC * btcPriceBrl)
-  : Infinity;
 
-// se ultrapassar o LTV de acionamento da reserva
-if (ltvValue >= ltvReserveTrigger) {
+  // 1️⃣ dívida cresce
+  debt += monthlyWithdraw;
+  debt *= (1 + monthlyRate);
 
-  const collateralNeededBRL = debt / ltvTarget;
-const collateralNeededBTC = collateralNeededBRL / btcPriceBrl;
+  // 2️⃣ calcula colateral necessário para LTV alvo
+  const collateralNeededBTC = debt / (btcPriceBrl * ltvTarget);
 
-const btcNeeded = collateralNeededBTC - btcTotal;
+  // 3️⃣ quanto falta considerando BTC já comprado
+  let btcNeeded = collateralNeededBTC - btcTotal;
 
-  if (reserveBtc >= btcNeeded) {
+  if (btcNeeded > 0) {
 
-    reserveUsed = btcNeeded;
-    reserveBtc -= reserveUsed;
-    btcTotal += reserveUsed;
+    if (reserveBtc >= btcNeeded) {
 
-  } else {
+      // usa reserva suficiente
+      reserveUsed = btcNeeded;
+      reserveBtc -= reserveUsed;
+      btcTotal += reserveUsed;
 
-    reserveUsed = reserveBtc;
-    btcTotal += reserveUsed;
-    reserveBtc = 0;
+    } else {
 
-    simStatus = "Falhou: reserva insuficiente";
+      // usa toda reserva e falha
+      reserveUsed = reserveBtc;
+      btcTotal += reserveUsed;
+      reserveBtc = 0;
+
+      simStatus = "Falhou: reserva insuficiente";
+
+    }
 
   }
 
+  debtFinal = debt;
+
 }
-        debtFinal = debt;
-      }
 
       totalReservaUsada += reserveUsed;
       const patrimonio = (btcTotal + reserveBtc) * btcPriceBrl;
@@ -574,18 +637,17 @@ const btcNeeded = collateralNeededBTC - btcTotal;
 let collateralBTC = 0;
 
 if (platform === "Ledn") {
-
   collateralBTC = lednCollateralBTC;
-
-} else {
-
+} else if (platform === "Aave") {
+  // colateral é somente o BTC travado no protocolo
   collateralBTC = btcTotal;
-
 }
 
-const ltvValue = collateralBTC > 0
-  ? debt / (collateralBTC * btcPriceBrl)
-  : Infinity;
+let ltvValue = 0;
+
+if (debt > 0 && collateralBTC > 0) {
+  ltvValue = debt / (collateralBTC * btcPriceBrl);
+}
 
 		let ltvClass = "ltv-green";
 
