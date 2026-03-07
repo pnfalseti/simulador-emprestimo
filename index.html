@@ -253,6 +253,28 @@ body.dark select:disabled{
   background:#334155;
   color:#94a3b8;
 }
+.status-badge{
+  display:inline-block;
+  padding:6px 10px;
+  border-radius:6px;
+  font-weight:600;
+  font-size:13px;
+}
+
+.status-ok{
+  background:#16a34a;
+  color:white;
+}
+
+.status-warning{
+  background:#f59e0b;
+  color:white;
+}
+
+.status-error{
+  background:#dc2626;
+  color:white;
+}
 </style>
 
 </head>
@@ -432,7 +454,7 @@ LTV acionado por reserva
 	<div>BTC total (comprado + reserva): <span id="sumBTCTotal">-</span></div>
     <div>Reserva total utilizada: <span id="sumReserva">-</span></div>
     <div>Dívida total: <span id="sumDivida">-</span></div>
-	<div>Status: <span id="sumStatus">-</span></div>
+	<div>Status: <span id="sumStatus" class="status-badge">-</span></div>
   </div>
 </div>
 
@@ -465,7 +487,30 @@ document.getElementById("platform").addEventListener("change", function() {
 document.getElementById("platform").dispatchEvent(new Event("change"));
 
 document.getElementById("run").addEventListener("click",runSim);
+function updateStatus(status){
 
+  const el = document.getElementById("sumStatus");
+
+  el.className = "status-badge";
+
+  if(status === "OK"){
+    el.classList.add("status-ok");
+    el.textContent = "🟢 Simulação concluída com sucesso";
+  }
+  else if(status.includes("Liquidado")){
+    el.classList.add("status-error");
+    el.textContent = "🔴 " + status;
+  }
+  else if(status.includes("Falhou")){
+    el.classList.add("status-error");
+    el.textContent = "🔴 " + status;
+  }
+  else{
+    el.classList.add("status-warning");
+    el.textContent = "🟡 " + status;
+  }
+
+}
 function runSim() {
   const platform = document.getElementById("platform").value;
   const btcUsd = +document.getElementById("btcUsd").value;
@@ -572,7 +617,7 @@ if (debt > 0 && collateralBTC > 0) {
         reserveUsed = reserveBtc;
         reserveBtc = 0;
 
-        simStatus = "Falhou: reserva insuficiente";
+        simStatus = "Falhou, reserva insuficiente";
 
       }
 
@@ -621,7 +666,7 @@ if (debt > 0 && collateralBTC > 0) {
       btcTotal += reserveUsed;
       reserveBtc = 0;
 
-      simStatus = "Falhou: reserva insuficiente";
+      simStatus = "Falhou, reserva insuficiente";
 
     }
 
@@ -740,8 +785,7 @@ if (debt > 0 && collateralBTC > 0) {
   document.getElementById("sumReserva").textContent = formatNum(totalReservaUsada, 4) + " ₿";
   document.getElementById("sumDivida").textContent = formatBRL(last.debtFinal);
   document.getElementById("sumBTCTotal").textContent = formatNum(last.btcTotal + last.reserveBtc, 4) + " ₿";
-  document.getElementById("sumStatus").textContent = 
-  simStatus === "OK" ? "Sucesso" : simStatus;
+  updateStatus(simStatus);
 
 }
 // ✅ Salvar resultado da simulação
@@ -823,8 +867,8 @@ document.getElementById("savedList").addEventListener("click", function(e) {
 
 // ✅ Função auxiliar para reconstruir gráfico/tabela ao carregar simulação
 function rebuildFromRows() {
-document.getElementById("sumStatus").textContent = 
-  simStatus === "OK" ? "Sucesso" : simStatus;
+
+  updateStatus(simStatus);
   let html = `<table><thead><tr><th class="left">Mês</th><th>Preço BTC (R$)</th><th>Investido</th><th>Total Investido</th><th>BTC comprado</th><th>BTC total</th><th>Reserva usada</th><th>Reserva restante</th><th>Saque</th><th>Dívida</th><th>Colateral (BTC)</th><th>LTV (%)</th></thead><tbody>`;
   rows.forEach(r=>{
     html += `<tr><td class="left">${r.date}</td><td>${formatBRL(r.btcPriceBrl)}</td><td>${formatBRL(r.invest)}</td><td>${formatBRL(r.totalInvested)}</td><td>${formatNum(r.btcBought)}</td><td>${formatNum(r.btcTotal)}</td><td>${formatNum(r.reserveUsed)}</td><td>${formatNum(r.reserveBtc)}</td><td>${formatBRL(r.loanTaken)}</td><td>${formatBRL(r.debtFinal)}</td><td>${formatNum(r.collateralBTC)}</td><td>${(r.ltv*100).toFixed(2)}</td></tr>`;
