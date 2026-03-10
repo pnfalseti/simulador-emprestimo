@@ -275,6 +275,32 @@ body.dark select:disabled{
   background:#dc2626;
   color:white;
 }
+.summary-grid{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:10px;
+margin-top:10px;
+}
+
+.metric{
+background:var(--box);
+border:1px solid var(--border);
+border-radius:8px;
+padding:10px;
+display:flex;
+flex-direction:column;
+}
+
+.metric-label{
+font-size:11px;
+opacity:.7;
+margin-bottom:2px;
+}
+
+.metric-value{
+font-size:16px;
+font-weight:700;
+}
 </style>
 
 </head>
@@ -447,15 +473,43 @@ LTV acionado por reserva
 <div class="box" id="chartSection">
   <div id="chartWrap"><canvas id="chart"></canvas></div>
   <div id="summaryBox">
-    <h2>Resumo Final</h2>
-    <div>Patrimônio total: <span id="sumPatrimonio">-</span></div>
-	<div>Total investido: <span id="sumInvestido">-</span></div>
-    <div>BTC total comprado: <span id="sumBTC">-</span></div>
-	<div>BTC total (comprado + reserva): <span id="sumBTCTotal">-</span></div>
-    <div>Reserva total utilizada: <span id="sumReserva">-</span></div>
-    <div>Dívida total: <span id="sumDivida">-</span></div>
-	<div>Status: <span id="sumStatus" class="status-badge">-</span></div>
-  </div>
+<h2>Resumo <span id="sumStatus" class="status-badge">-</span></h2>
+
+<div class="summary-grid">
+<div class="metric">
+<span class="metric-label">Investido</span>
+<span id="sumInvestido" class="metric-value">-</span>
+</div>
+<div class="metric">
+<span class="metric-label">Patrimônio</span>
+<span id="sumPatrimonio" class="metric-value">-</span>
+</div>
+
+
+
+<div class="metric">
+<span class="metric-label">BTC comprado</span>
+<span id="sumBTC" class="metric-value">-</span>
+</div>
+
+<div class="metric">
+<span class="metric-label">BTC total</span>
+<span id="sumBTCTotal" class="metric-value">-</span>
+</div>
+
+<div class="metric">
+<span class="metric-label">Reserva usada</span>
+<span id="sumReserva" class="metric-value">-</span>
+</div>
+
+<div class="metric">
+<span class="metric-label">Dívida</span>
+<span id="sumDivida" class="metric-value">-</span>
+</div>
+
+</div>
+
+</div>
 </div>
 
 <div class="box" id="tableWrap"></div>
