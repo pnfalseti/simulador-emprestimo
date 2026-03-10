@@ -301,6 +301,11 @@ margin-bottom:2px;
 font-size:16px;
 font-weight:700;
 }
+.patrimonio-mult{
+  font-size:12px;
+  font-weight:600;
+  opacity:.7;
+}
 </style>
 
 </head>
@@ -520,7 +525,7 @@ function formatNum(v,d=6){return Number.isFinite(v)?v.toFixed(d):'-';}
 
 let rows=[];
 let chart;
-let simStatus = "OK";
+let simStatus = null;
 
 document.getElementById("platform").addEventListener("change", function() {
   const platform = this.value;
@@ -833,7 +838,12 @@ if (debt > 0 && collateralBTC > 0) {
 
   // resumo final (corrigido)
   const last = rows[rows.length - 1];
-  document.getElementById("sumPatrimonio").textContent = formatBRL(last.patrimonio);
+  const multiplicador = totalInvested > 0 
+  ? last.patrimonio / totalInvested 
+  : 0;
+  document.getElementById("sumPatrimonio").innerHTML =
+  `${formatBRL(last.patrimonio)}<br>
+  <span class="patrimonio-mult">🚀 ${multiplicador.toFixed(2)}x</span>`;
   document.getElementById("sumInvestido").textContent = formatBRL(totalInvested);
   document.getElementById("sumBTC").textContent = formatNum(totalBtcComprado, 4) + " ₿"; // ✅ corrigido
   document.getElementById("sumReserva").textContent = formatNum(totalReservaUsada, 4) + " ₿";
@@ -956,7 +966,9 @@ function rebuildFromRows() {
   });
 
   const last = rows[rows.length - 1];
-  document.getElementById("sumPatrimonio").textContent = formatBRL(last.patrimonio);
+  document.getElementById("sumPatrimonio").innerHTML =
+  `${formatBRL(last.patrimonio)}<br>
+  <span class="patrimonio-mult">🚀 ${multiplicador.toFixed(2)}x</span>`;
   document.getElementById("sumInvestido").textContent = formatBRL(totalInvested);
   document.getElementById("sumBTC").textContent = formatNum(last.btcTotal, 4) + " ₿";
   document.getElementById("sumReserva").textContent = formatNum(last.reserveUsed, 4) + " ₿";
