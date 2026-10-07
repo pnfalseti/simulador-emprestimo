@@ -623,6 +623,12 @@ function readNum(id){
   return Number.isFinite(v) ? v : NaN;
 }
 
+// Igual a readNum, mas usa um valor padrão quando o campo está vazio/inválido
+function readNumOr(id, fallback){
+  const v = readNum(id);
+  return Number.isFinite(v) ? v : fallback;
+}
+
 document.getElementById("platform").addEventListener("change", function() {
   const platform = this.value;
   if (platform === "Ledn") {
@@ -676,15 +682,16 @@ function runSim() {
   const btcUsd = readNum("btcUsd");
   const usdBrl = readNum("usdBrl");
   const btcGrowth = readNum("btcGrowth") / 100;
-  const monthlySalary = readNum("monthlySalary");
-  const plr = readNum("plr");
+  // Campos de aporte são opcionais: campo vazio é tratado como 0 (não NaN)
+  const monthlySalary = readNumOr("monthlySalary", 0);
+  const plr = readNumOr("plr", 0);
   const plrMonth = readNum("plrMonth");
-  const initialAporte = readNum("initialAporte");
+  const initialAporte = readNumOr("initialAporte", 0);
   const monthlyWithdraw = readNum("monthlyWithdraw");
   const annualInterest = readNum("annualInterest") / 100;
   const adminFee = readNum("adminFee") / 100;
   const ltvTarget = readNum("ltv") / 100;
-  let reserveBtc = readNum("reserveBtc");
+  let reserveBtc = readNumOr("reserveBtc", 0);
   const startYear = readNum("startYear");
   const endYear = readNum("endYear");
   const ltvReserveTrigger = readNum("ltvReserve") / 100;
